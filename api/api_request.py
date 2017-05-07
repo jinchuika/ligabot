@@ -1,6 +1,7 @@
 import requests
 import click
 from django.conf import settings
+from datetime import datetime
 
 
 class RequestHandler(object):
@@ -17,7 +18,7 @@ class RequestHandler(object):
         """Handles api.football-data.org requests"""
         if self.verbose:
             print('calling: ' + url)
-        req = requests.get(RequestHandler.BASE_URL + url, headers={'X-Auth-Token': RequestHandler.API_TOKEN})
+        req = requests.get(RequestHandler.BASE_URL + url, headers={'X-Auth-Token': RequestHandler.API_TOKEN, 'X-Response-Control': 'minified'})
 
         if req.status_code == requests.codes.ok:
             if self.verbose:
@@ -47,6 +48,7 @@ class RequestHandler(object):
             team_scores = req.json()
             if len(team_scores["fixtures"]) != 0:
                 return [{
+                    'id': fixture['id'],
                     'fecha': fixture['date'],
                     'jornada': fixture['matchday'],
                     'local': fixture['homeTeamName'],
@@ -87,9 +89,12 @@ class RequestHandler(object):
             # no fixtures in the past week. display a help message and return
             if len(fixtures_results["fixtures"]) != 0:
                 return [{
+                    'id': fixture['id'],
                     'fecha': fixture['date'],
                     'jornada': fixture['matchday'],
                     'local': fixture['homeTeamName'],
+                    'local_id': fixture['homeTeamId'],
+                    'visitante_id': fixture['awayTeamId'],
                     'visitante': fixture['awayTeamName'],
                     'gol_local': fixture['result']['goalsHomeTeam'],
                     'gol_visitante': fixture['result']['goalsAwayTeam'],
@@ -113,3 +118,49 @@ class RequestHandler(object):
             click.secho("No players found for this team", fg="red", bold=True)
         else:
             self.writer.team_players(team_players)
+
+    def get_leagues(self, season=None):
+        if not season:
+            season = datetime.now().year
+        req = self._get('competitions/?season={season}'.format(season=season))
+        competition_list = req.json()
+
+        return [{
+            'id': competition['id'],
+            'caption': competition['caption'],
+            'league': competition['league'],
+            'year': competition['year'],
+            'numberOfTeams': competition['numberOfTeams'],
+            'numberOfGames': competition['numberOfGames'],
+            'numberOfMatchdays': competition['numberOfMatchdays'],
+            'currentMatchday': competition['currentMatchday'],
+            'lastUpdated': competition['lastUpdated'],
+        } for competition in competition_list]
+
+    def get_league_info(self, league_id):
+        req = self._get('competitions/{league_id}/'.format(league_id=league_id))
+        competition = req.json()
+
+        return {
+            'id': competition['id'],
+            'caption': competition['caption'],
+            'league': competition['league'],
+            'year': competition['year'],
+            'numberOfTeams': competition['numberOfTeams'],
+            'numberOfGames': competition['numberOfGames'],
+            'numberOfMatchdays': competition['numberOfMatchdays'],
+            'currentMatchday': competition['currentMatchday'],
+            'lastUpdated': competition['lastUpdated'],
+        }
+
+    def get_league_teams(self, league_id):
+        req = self._get('competitions/{league_id}/teams'.format(league_id=league_id))
+        team_list = req.json()
+
+        return [{
+            'id': team['id'],
+            'name': team['name'],
+            'short_name': team['shortName'],
+            'squad_market_value': team['squadMarketValue'],
+            'crest_url': team['crestUrl'],
+        } for team in team_list['teams'] if 'id' in team]

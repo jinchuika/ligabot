@@ -1,0 +1,12 @@
+appdirs==1.4.3
+click==6.7
+Django==1.11
+django-filter==1.0.2
+djangorestframework==3.6.2
+Markdown==2.6.8
+packaging==16.8
+pyparsing==2.2.0
+pytz==2017.2
+requests==2.7.0
+six==1.10.0
+soccer-cli==0.1.0.0
