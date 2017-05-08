@@ -28,7 +28,7 @@ class Competition(models.Model):
     currentMatchday = models.IntegerField(null=True)
     lastUpdated = models.DateTimeField(null=True)
 
-    teams = models.ManyToManyField(Team, blank=True)
+    teams = models.ManyToManyField(Team, blank=True, through='TeamRank')
 
     class Meta:
         verbose_name = "Competition"
@@ -36,6 +36,27 @@ class Competition(models.Model):
 
     def __str__(self):
         return self.caption
+
+
+class TeamRank(models.Model):
+    competition = models.ForeignKey(Competition)
+    team = models.ForeignKey(Team)
+    rank = models.IntegerField(null=True)
+    playedGames = models.IntegerField(null=True)
+    goals = models.IntegerField(null=True)
+    goalsAgainst = models.IntegerField(null=True)
+    goalDifference = models.IntegerField(null=True)
+    points = models.IntegerField(null=True)
+
+    class Meta:
+        verbose_name = "Team rank"
+        verbose_name_plural = "Team ranks"
+
+    def __str__(self):
+        return '{rank} - {team} ({competition})'.format(
+            rank=self.rank,
+            team=self.team,
+            competition=self.competition)
 
 
 class Fixture(models.Model):

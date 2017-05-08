@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from api.models import Competition
+from api.models import Competition, Fixture, Team
 
 
 class MatchSerializer(serializers.Serializer):
@@ -21,7 +21,23 @@ class TableSerializer(serializers.Serializer):
     diferencia = serializers.IntegerField()
     puntos = serializers.IntegerField()
 
+
 class CompetitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Competition
+        fields = '__all__'
+
+
+class FixtureSerializer(serializers.ModelSerializer):
+    home_team = serializers.StringRelatedField()
+    away_team = serializers.StringRelatedField()
+
+    class Meta:
+        model = Fixture
+        fields = '__all__'
+
+
+class TeamSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Team
         fields = '__all__'

@@ -64,13 +64,14 @@ class RequestHandler(object):
         """Queries the API and gets the standings for a particular league"""
         req = self._get('competitions/{id}/leagueTable'.format(id=league_id))
         return [{
-            'puesto': team["position"],
-            'nombre': team["teamName"],
-            'juegos': team["playedGames"],
-            'goles_favor': team["goals"],
-            'goles_contra': team["goalsAgainst"],
-            'diferencia': team["goalDifference"],
-            'puntos': team["points"]
+            'rank': team["rank"],
+            'teamId': team["teamId"],
+            'teamName': team["team"],
+            'playedGames': team["playedGames"],
+            'goals': team["goals"],
+            'goalsAgainst': team["goalsAgainst"],
+            'goalDifference': team["goalDifference"],
+            'points': team["points"]
         } for team in req.json()['standing']]
 
     def get_league_scores(self, league_id, time=7, show_upcoming=False, use_12_hour_format=False):

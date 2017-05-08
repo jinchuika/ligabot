@@ -1,7 +1,6 @@
-import pytz
 from api.api_request import RequestHandler
 from datetime import datetime
-from api.models import Fixture, Competition, Team
+from api.models import Fixture, Competition, Team, TeamRank
 from django.db.models import Q
 
 
@@ -18,7 +17,7 @@ class DBUpdater(object):
 
     def get_local_leagues(self):
         this_year = datetime.now().year
-        return Competition.objects.filter(Q(year=this_year) | Q(year=(this_year -1)))
+        return Competition.objects.filter(Q(year=this_year) | Q(year=(this_year - 1)))
 
     def get_remote_fixtures(self, league_id, time=1, show_upcoming=True):
         fixture_list = self.req.get_league_scores(league_id=league_id, time=time, show_upcoming=show_upcoming)
@@ -29,17 +28,17 @@ class DBUpdater(object):
         created = []
         for league in league_list:
             try:
-                compp = Competition.objects.get(id=league['id'])
+                comp = Competition.objects.get(id=league['id'])
             except Competition.DoesNotExist:
                 comp = Competition(
                     id=league['id'],
-                    caption=league['caption'], 
-                    league=league['league'], 
-                    year=league['year'], 
-                    numberOfTeams=league['numberOfTeams'], 
-                    numberOfGames=league['numberOfGames'], 
-                    numberOfMatchdays=league['numberOfMatchdays'], 
-                    currentMatchday=league['currentMatchday'], 
+                    caption=league['caption'],
+                    league=league['league'],
+                    year=league['year'],
+                    numberOfTeams=league['numberOfTeams'],
+                    numberOfGames=league['numberOfGames'],
+                    numberOfMatchdays=league['numberOfMatchdays'],
+                    currentMatchday=league['currentMatchday'],
                     lastUpdated=league['lastUpdated'])
                 comp.save()
                 created.append(comp)
@@ -59,7 +58,7 @@ class DBUpdater(object):
                     squad_market_value=team['squad_market_value'],
                     crest_url=team['crest_url'])
                 new_team.save()
-            league.teams.add(new_team)
+            TeamRank.objects.create(team=new_team, competition=league)
             league.save()
         return league
 
@@ -80,14 +79,12 @@ class DBUpdater(object):
                     home_team=Team.objects.get(id=fixture['local_id']),
                     away_team=Team.objects.get(id=fixture['visitante_id']),
                     goals_home=fixture['gol_local'],
-                    goals_away=fixture['gol_visitante'],
-                    )
+                    goals_away=fixture['gol_visitante'],)
                 fix.save()
         return league
 
     def update_league_scores(self, league_id):
         league = Competition.objects.get(id=league_id)
-        current_time = datetime.now()
         remote_fixture_list = self.get_remote_fixtures(league_id)
         for remote_fixture in remote_fixture_list:
             try:
@@ -104,3 +101,21 @@ class DBUpdater(object):
         league.currentMatchday = remote_league['currentMatchday']
         league.save()
         return league
+
+    def update_league_standings(self, league_id):
+        remote_standings = self.req.get_standings(league_id)
+        for standing in remote_standings:
+            try:
+                rank = TeamRank.objects.get(competition__id=league_id, team__id=standing['teamId'])
+            except TeamRank.DoesNotExist:
+                rank = TeamRank.objects.create(
+                    competition__id=league_id,
+                    team__id=standing['teamId'])
+            rank.rank = standing['rank']
+            rank.playedGames = standing["playedGames"]
+            rank.goals = standing["goals"]
+            rank.goalsAgainst = standing["goalsAgainst"]
+            rank.goalDifference = standing["goalDifference"]
+            rank.points = standing["points"]
+            rank.save()
+        return league_id

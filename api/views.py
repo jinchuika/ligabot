@@ -1,8 +1,8 @@
-from .serializers import MatchSerializer, TableSerializer, CompetitionSerializer
-from rest_framework import mixins
-from rest_framework import generics
+from django.db.models import Q
+from .serializers import MatchSerializer, TableSerializer, CompetitionSerializer, FixtureSerializer, TeamSerializer
+from rest_framework import mixins, generics, viewsets
 from api.api_request import RequestHandler
-from api.models import Competition
+from api.models import Competition, Fixture, Team
 
 
 class TeamMatchListView(generics.ListAPIView):
@@ -35,3 +35,34 @@ class CompetitionApiView(mixins.ListModelMixin, generics.GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
+
+
+class FixtureViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = FixtureSerializer
+    queryset = Fixture.objects.all()
+
+    def get_queryset(self):
+        queryset = Fixture.objects.all()
+        competition_id = self.request.query_params.get('competition', None)
+        team_id = self.request.query_params.get('team', None)
+        home_id = self.request.query_params.get('home', None)
+        away_id = self.request.query_params.get('away', None)
+        if competition_id is not None:
+            queryset = queryset.filter(competition__id=competition_id)
+        if team_id is not None:
+            queryset = queryset.filter(Q(home_team__id=team_id) | Q(away_team__id=team_id))
+        if home_id is not None:
+            queryset = queryset.filter(home_team__id=home_id)
+        if away_id is not None:
+            queryset = queryset.filter(away_team__id=away_id)
+        return queryset
+
+
+class CompetitionViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = CompetitionSerializer
+    queryset = Competition.objects.all()
+
+
+class TeamViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = TeamSerializer
+    queryset = Team.objects.all()
